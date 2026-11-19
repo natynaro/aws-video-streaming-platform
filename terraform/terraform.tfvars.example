@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars (gitignored) and adjust for your AWS account.
+#
+# DevopsLab SSO (AWSReservedSSO_DevopsLab_*) typically CANNOT run iam:CreateRole.
+# Use HTTP-01 fallback on that account:
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# Accounts with iam:CreateRole can omit this file or set:
+#   enable_dns01_iam = true
+
+enable_dns01_iam = false
