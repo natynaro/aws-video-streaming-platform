@@ -1,0 +1,6 @@
+---
+- name: Restart ffmpeg stream
+  ansible.builtin.systemd:
+    name: "{{ ffmpeg_stream_service }}"
+    state: restarted
+    daemon_reload: true

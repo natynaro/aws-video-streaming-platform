@@ -1,0 +1,18 @@
+[Unit]
+Description=Loop Big Buck Bunny and push RTMP to Web Frontend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ ffmpeg_stream_user }}
+Group={{ ffmpeg_stream_user }}
+Restart=always
+RestartSec=5
+ExecStart=/usr/bin/ffmpeg -stream_loop -1 -re \
+  -i {{ videos_dir }}/{{ video_filename }} \
+  -c:v libx264 -c:a aac -f flv \
+  rtmp://{{ web_frontend_private_ip }}:1935/{{ rtmp_application }}/{{ rtmp_stream_name }}
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GIN207 Live Stream</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    code { background: #f4f4f4; padding: 0.2rem 0.4rem; border-radius: 4px; }
+    a { color: #0066cc; }
+  </style>
+</head>
+<body>
+  <h1>GIN207 — Big Buck Bunny (Live HLS)</h1>
+  <p>Stream is pushed from the Video Streamer via RTMP and served as HLS/DASH.</p>
+  <ul>
+{% if web_enable_https | default(false) | bool and stream_domain | default('') | length > 0 %}
+    <li>HLS (HTTPS): <a href="https://{{ stream_domain }}/hls/stream.m3u8">https://{{ stream_domain }}/hls/stream.m3u8</a></li>
+    <li>DASH (HTTPS): <a href="https://{{ stream_domain }}/dash/stream.mpd">https://{{ stream_domain }}/dash/stream.mpd</a></li>
+{% else %}
+    <li>HLS (HTTP): <a href="/hls/stream.m3u8">/hls/stream.m3u8</a></li>
+    <li>DASH (HTTP): <a href="/dash/stream.mpd">/dash/stream.mpd</a></li>
+{% endif %}
+  </ul>
+  <p>Open the HLS URL in Safari, or use an <a href="https://hls-js.netlify.app/demo/">hls.js demo</a> in Chrome.</p>
+</body>
+</html>

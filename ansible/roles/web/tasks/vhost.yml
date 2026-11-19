@@ -1,0 +1,31 @@
+---
+- name: Create stream directory
+  ansible.builtin.file:
+    path: /var/www/html/stream
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Create HLS directory
+  ansible.builtin.file:
+    path: /var/www/html/stream/hls
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Create DASH directory
+  ansible.builtin.file:
+    path: /var/www/html/stream/dash
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Deploy streamer virtual host
+  ansible.builtin.template:
+    src: streamer.conf.j2
+    dest: /etc/nginx/sites-enabled/streamer
+    mode: "0644"
+  notify: Restart nginx

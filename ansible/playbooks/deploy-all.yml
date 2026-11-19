@@ -1,0 +1,20 @@
+---
+# Full stack deploy — run from repo root after `tofu apply` generates inventory.ini
+# Usage:
+#   export ANSIBLE_CONFIG=ansible/ansible.cfg
+#   ansible-playbook -i ansible/inventory.ini ansible/playbooks/deploy-all.yml
+
+- name: Deploy Web Frontend (nginx + RTMP + HLS/DASH)
+  ansible.builtin.import_playbook: web-setup.yml
+
+- name: Deploy HTTPS certificate
+  ansible.builtin.import_playbook: deploy-certificate.yml
+
+- name: Deploy demo landing page
+  ansible.builtin.import_playbook: deploy-website.yml
+
+- name: Deploy Video Streamer (FFmpeg RTMP push)
+  ansible.builtin.import_playbook: streamer-setup.yml
+
+- name: Validate streaming endpoints and services
+  ansible.builtin.import_playbook: validate-streaming.yml

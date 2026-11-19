@@ -1,0 +1,15 @@
+---
+# Copy to group_vars/streamer.yml after Person 1 runs tofu apply,
+# or rely on Terraform-generated ansible/inventory.ini ([streamer:vars]).
+#
+# Maintainer: bingrui (Person 3)
+
+# Web Frontend private IP from: tofu output x_projectBKN_web_private_ip
+web_frontend_private_ip: "172.16.1.10"
+
+# Official Blender sample (README: BigBuckBunny_320x180.mp4)
+sample_video_url: "https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"
+
+# Must match Web nginx-rtmp config (application/stream name)
+rtmp_application: live
+rtmp_stream_name: stream

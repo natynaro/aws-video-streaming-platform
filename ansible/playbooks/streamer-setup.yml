@@ -1,0 +1,7 @@
+---
+# Person 3 — Video Streamer
+# Run from repo root:
+#   ansible-playbook -i ansible/inventory.ini ansible/playbooks/streamer-setup.yml
+
+- name: Configure Video Streamer (FFmpeg RTMP push)
+  ansible.builtin.import_playbook: ../video_streamer.yml

@@ -1,0 +1,85 @@
+---
+# Post-deploy smoke test — run from repo root after streamer-setup.yml
+# Usage: ansible-playbook -i ansible/inventory.ini ansible/playbooks/validate-streaming.yml
+
+- name: Validate public HTTPS endpoints
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    domain: "{{ hostvars[groups['web'][0]]['stream_domain'] | default('teambkn.devops.intuitivelabs.net') }}"
+  tasks:
+    - name: Check HLS playlist
+      ansible.builtin.uri:
+        url: "https://{{ domain }}/hls/stream.m3u8"
+        return_content: true
+        status_code: 200
+      register: hls
+
+    - name: Assert HLS contains segments
+      ansible.builtin.assert:
+        that:
+          - "'#EXTM3U' in hls.content"
+          - "'.ts' in hls.content or '#EXT-X-MEDIA-SEQUENCE' in hls.content"
+        fail_msg: "HLS playlist missing expected tags"
+
+    - name: Check DASH manifest
+      ansible.builtin.uri:
+        url: "https://{{ domain }}/dash/stream.mpd"
+        return_content: true
+        status_code: 200
+      register: dash_mpd
+
+    - name: Assert DASH manifest structure
+      ansible.builtin.assert:
+        that:
+          - "'<MPD' in dash_mpd.content"
+          - "'type=\"dynamic\"' in dash_mpd.content"
+        fail_msg: "DASH manifest missing expected MPD structure"
+
+    - name: Check DASH video init segment MIME
+      ansible.builtin.uri:
+        url: "https://{{ domain }}/dash/stream-init.m4v"
+        method: HEAD
+        status_code: 200
+      register: dash_init_video
+      failed_when: dash_init_video.content_type is not search('video/mp4')
+
+    - name: Check DASH audio init segment MIME
+      ansible.builtin.uri:
+        url: "https://{{ domain }}/dash/stream-init.m4a"
+        method: HEAD
+        status_code: 200
+      register: dash_init_audio
+      failed_when: dash_init_audio.content_type is not search('audio/mp4')
+
+    - name: Check demo home page
+      ansible.builtin.uri:
+        url: "https://{{ domain }}/"
+        status_code: 200
+
+- name: Validate services on Web Frontend
+  hosts: web
+  become: true
+  tasks:
+    - name: nginx is active
+      ansible.builtin.systemd:
+        name: nginx
+      register: nginx_svc
+      failed_when: nginx_svc.status.ActiveState != 'active'
+
+    - name: RTMP port listening
+      ansible.builtin.wait_for:
+        port: 1935
+        host: 127.0.0.1
+        timeout: 10
+
+- name: Validate services on Video Streamer
+  hosts: streamer
+  become: true
+  tasks:
+    - name: ffmpeg-stream is active
+      ansible.builtin.systemd:
+        name: ffmpeg-stream
+      register: ffmpeg_svc
+      failed_when: ffmpeg_svc.status.ActiveState != 'active'

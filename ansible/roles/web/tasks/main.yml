@@ -1,0 +1,64 @@
+---
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    name:
+      - nginx
+      - libnginx-mod-rtmp
+      - ffmpeg
+    state: present
+
+- name: Create stream directory
+  ansible.builtin.file:
+    path: /var/www/html/stream
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Create HLS directory
+  ansible.builtin.file:
+    path: /var/www/html/stream/hls
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Create DASH directory
+  ansible.builtin.file:
+    path: /var/www/html/stream/dash
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Deploy nginx.conf
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    mode: "0644"
+  notify: Restart nginx
+
+- name: Remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Restart nginx
+
+- name: Deploy streamer virtual host
+  ansible.builtin.template:
+    src: streamer.conf.j2
+    dest: /etc/nginx/sites-enabled/streamer
+    mode: "0644"
+  vars:
+    web_enable_https: false
+  notify: Restart nginx
+
+- name: Enable and start nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

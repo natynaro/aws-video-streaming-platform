@@ -1,0 +1,19 @@
+---
+# Person 2 — HTTPS (DNS-01 via Route53 + IAM instance profile on Web EC2)
+# Prerequisites: web-setup.yml already run (nginx + HLS on HTTP).
+#
+# Requires Terraform IAM role (terraform/iam.tf) attached to Web Frontend.
+# Set in inventory [web:vars]: stream_domain, certbot_email
+#
+# Run from repo root:
+#   ansible-playbook -i ansible/inventory.ini ansible/playbooks/deploy-certificate.yml
+
+- name: Deploy HTTPS certificate on Web Frontend
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Run certificate tasks
+      ansible.builtin.import_role:
+        name: web
+        tasks_from: certificate

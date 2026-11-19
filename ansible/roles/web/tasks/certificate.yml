@@ -1,0 +1,146 @@
+---
+- name: Install certbot (DNS-01 plugin)
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-dns-route53
+    state: present
+    update_cache: true
+  when: certbot_challenge == 'dns-route53'
+
+- name: Install certbot (HTTP-01 webroot)
+  ansible.builtin.apt:
+    name:
+      - certbot
+    state: present
+    update_cache: true
+  when: certbot_challenge == 'webroot'
+
+- name: Create certbot webroot directory
+  ansible.builtin.file:
+    path: "{{ certbot_webroot }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+  when: certbot_challenge == 'webroot'
+
+- name: Ensure HTTP vhost allows ACME challenge before HTTPS
+  ansible.builtin.template:
+    src: streamer.conf.j2
+    dest: /etc/nginx/sites-enabled/streamer
+    mode: "0644"
+  vars:
+    web_enable_https: false
+  notify: Restart nginx
+  when: certbot_challenge == 'webroot'
+
+- name: Flush handlers so nginx serves ACME path
+  ansible.builtin.meta: flush_handlers
+  when: certbot_challenge == 'webroot'
+
+- name: Obtain Let's Encrypt certificate (DNS-01 via Route53)
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly --dns-route53
+      -d {{ stream_domain }}
+      --email {{ certbot_email }}
+      --agree-tos
+      --non-interactive
+      --keep-until-expiring
+    creates: "/etc/letsencrypt/live/{{ stream_domain }}/fullchain.pem"
+  register: certbot_dns_result
+  changed_when: "'Congratulations' in certbot_dns_result.stdout or 'Successfully received certificate' in certbot_dns_result.stdout"
+  failed_when: certbot_dns_result.rc != 0
+  when:
+    - certbot_challenge == 'dns-route53'
+    - stream_domain | length > 0
+    - certbot_email | length > 0
+  environment:
+    AWS_DEFAULT_REGION: "{{ certbot_aws_region }}"
+
+- name: Obtain Let's Encrypt certificate (HTTP-01 webroot)
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly --webroot
+      -w {{ certbot_webroot }}
+      -d {{ stream_domain }}
+      --email {{ certbot_email }}
+      --agree-tos
+      --non-interactive
+      --keep-until-expiring
+    creates: "/etc/letsencrypt/live/{{ stream_domain }}/fullchain.pem"
+  register: certbot_web_result
+  changed_when: "'Congratulations' in certbot_web_result.stdout or 'Successfully received certificate' in certbot_web_result.stdout"
+  failed_when: certbot_web_result.rc != 0
+  when:
+    - certbot_challenge == 'webroot'
+    - stream_domain | length > 0
+    - certbot_email | length > 0
+
+- name: Check Let's Encrypt certificate on disk
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ stream_domain }}/fullchain.pem"
+  register: le_cert
+  when: stream_domain | length > 0
+
+- name: Set Let's Encrypt certificate paths
+  ansible.builtin.set_fact:
+    web_ssl_cert_path: "/etc/letsencrypt/live/{{ stream_domain }}/fullchain.pem"
+    web_ssl_key_path: "/etc/letsencrypt/live/{{ stream_domain }}/privkey.pem"
+    web_enable_https: true
+  when:
+    - stream_domain | length > 0
+    - le_cert.stat.exists | default(false)
+
+- name: Create self-signed certificate directory
+  ansible.builtin.file:
+    path: /etc/ssl/stream-selfsigned
+    state: directory
+    mode: "0755"
+  when: stream_domain | length == 0 or certbot_email | length == 0
+
+- name: Generate self-signed certificate (no domain configured)
+  ansible.builtin.command:
+    cmd: >-
+      openssl req -x509 -nodes -days 365 -newkey rsa:2048
+      -keyout /etc/ssl/stream-selfsigned/privkey.pem
+      -out /etc/ssl/stream-selfsigned/fullchain.pem
+      -subj "/CN={{ ansible_default_ipv4.address | default('stream.local') }}"
+  args:
+    creates: /etc/ssl/stream-selfsigned/fullchain.pem
+  when: stream_domain | length == 0 or certbot_email | length == 0
+
+- name: Enable HTTPS with self-signed certificate
+  ansible.builtin.set_fact:
+    web_ssl_cert_path: /etc/ssl/stream-selfsigned/fullchain.pem
+    web_ssl_key_path: /etc/ssl/stream-selfsigned/privkey.pem
+    web_enable_https: true
+  when: stream_domain | length == 0 or certbot_email | length == 0
+
+- name: Deploy HTTPS streamer virtual host
+  ansible.builtin.template:
+    src: streamer.conf.j2
+    dest: /etc/nginx/sites-enabled/streamer
+    mode: "0644"
+  notify: Restart nginx
+
+- name: Install certbot renewal cron (DNS-01)
+  ansible.builtin.cron:
+    name: certbot renew
+    minute: "0"
+    hour: "3"
+    job: "AWS_DEFAULT_REGION={{ certbot_aws_region }} certbot renew --dns-route53 --quiet --deploy-hook 'systemctl reload nginx'"
+  when:
+    - stream_domain | length > 0
+    - certbot_challenge == 'dns-route53'
+
+- name: Install certbot renewal cron (HTTP-01)
+  ansible.builtin.cron:
+    name: certbot renew
+    minute: "0"
+    hour: "3"
+    job: "certbot renew --quiet --deploy-hook 'systemctl reload nginx'"
+  when:
+    - stream_domain | length > 0
+    - certbot_challenge == 'webroot'

@@ -1,0 +1,10 @@
+---
+# Person 2 — Web Frontend (Kailani)
+# Run from repo root:
+#   ansible-playbook -i ansible/inventory.ini ansible/playbooks/web-setup.yml
+
+- name: Configure Web Frontend
+  hosts: web
+  become: true
+  roles:
+    - web

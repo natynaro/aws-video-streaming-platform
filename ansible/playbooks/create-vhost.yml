@@ -1,0 +1,15 @@
+---
+# Person 2 — Deploy / update nginx streamer vhost only (bingrui)
+# Run after changing streamer.conf.j2 or HLS/DASH paths.
+#
+#   ansible-playbook -i ansible/inventory.ini ansible/playbooks/create-vhost.yml
+
+- name: Deploy streamer nginx virtual host
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Run vhost tasks
+      ansible.builtin.import_role:
+        name: web
+        tasks_from: vhost

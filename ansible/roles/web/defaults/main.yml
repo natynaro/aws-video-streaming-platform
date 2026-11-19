@@ -1,0 +1,10 @@
+---
+web_enable_https: false
+stream_domain: ""
+certbot_email: ""
+certbot_challenge: dns-route53
+certbot_aws_region: us-east-1
+rtmp_publish_allow_cidr: "172.16.2.0/24"
+certbot_webroot: /var/www/certbot
+web_ssl_cert_path: /etc/ssl/stream-selfsigned/fullchain.pem
+web_ssl_key_path: /etc/ssl/stream-selfsigned/privkey.pem

@@ -1,0 +1,44 @@
+---
+- name: Install ffmpeg
+  ansible.builtin.apt:
+    name: ffmpeg
+    state: present
+    update_cache: true
+
+- name: Create dedicated streamer system user
+  ansible.builtin.user:
+    name: "{{ ffmpeg_stream_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Create videos directory
+  ansible.builtin.file:
+    path: "{{ videos_dir }}"
+    state: directory
+    owner: "{{ ffmpeg_stream_user }}"
+    group: "{{ ffmpeg_stream_user }}"
+    mode: "0755"
+
+- name: Download Big Buck Bunny sample video
+  ansible.builtin.get_url:
+    url: "{{ sample_video_url }}"
+    dest: "{{ videos_dir }}/{{ video_filename }}"
+    mode: "0644"
+    owner: "{{ ffmpeg_stream_user }}"
+    group: "{{ ffmpeg_stream_user }}"
+    force: false
+
+- name: Deploy FFmpeg streaming systemd unit
+  ansible.builtin.template:
+    src: ffmpeg-stream.service.j2
+    dest: "/etc/systemd/system/{{ ffmpeg_stream_service }}.service"
+    mode: "0644"
+  notify: Restart ffmpeg stream
+
+- name: Enable and start FFmpeg stream service
+  ansible.builtin.systemd:
+    name: "{{ ffmpeg_stream_service }}"
+    enabled: true
+    state: started
+    daemon_reload: true

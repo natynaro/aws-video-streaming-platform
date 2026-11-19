@@ -1,0 +1,95 @@
+server {
+    listen 80;
+    server_name {{ stream_domain | default('_') }};
+
+{% if certbot_challenge | default('dns-route53') == 'webroot' %}
+    location /.well-known/acme-challenge/ {
+        root {{ certbot_webroot }};
+    }
+{% endif %}
+
+{% if web_enable_https | bool %}
+    location / {
+        return 301 https://$host$request_uri;
+    }
+{% else %}
+    location / {
+        root /var/www/html;
+        try_files $uri $uri/ =404;
+    }
+
+    location /hls {
+        add_header Access-Control-Allow-Origin *;
+        root /var/www/html/stream;
+    }
+
+    autoindex_localtime on;
+
+    location /dash {
+        add_header 'Cache-Control' 'no-cache';
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Expose-Headers' 'Content-Length';
+
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+
+        types {
+            application/dash+xml mpd;
+            video/mp4 m4v mp4;
+            audio/mp4 m4a;
+        }
+
+        root /var/www/html/stream;
+    }
+{% endif %}
+}
+
+{% if web_enable_https | bool %}
+server {
+    listen 443 ssl;
+    server_name {{ stream_domain | default('_') }};
+
+    ssl_certificate {{ web_ssl_cert_path }};
+    ssl_certificate_key {{ web_ssl_key_path }};
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    location / {
+        root /var/www/html;
+        try_files $uri $uri/ =404;
+    }
+
+    location /hls {
+        add_header Access-Control-Allow-Origin *;
+        root /var/www/html/stream;
+    }
+
+    autoindex_localtime on;
+
+    location /dash {
+        add_header 'Cache-Control' 'no-cache';
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Expose-Headers' 'Content-Length';
+
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+
+        types {
+            application/dash+xml mpd;
+            video/mp4 m4v mp4;
+            audio/mp4 m4a;
+        }
+
+        root /var/www/html/stream;
+    }
+}
+{% endif %}

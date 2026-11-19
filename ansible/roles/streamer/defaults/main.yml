@@ -1,0 +1,8 @@
+---
+videos_dir: /videos
+video_filename: BigBuckBunny_320x180.mp4
+ffmpeg_stream_service: ffmpeg-stream
+ffmpeg_stream_user: streamer
+rtmp_application: live
+rtmp_stream_name: stream
+sample_video_url: https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4

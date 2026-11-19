@@ -1,0 +1,14 @@
+---
+# Person 2 — Landing page with stream links (bingrui)
+# Run from repo root:
+#   ansible-playbook -i ansible/inventory.ini ansible/playbooks/deploy-website.yml
+
+- name: Deploy demo landing page on Web Frontend
+  hosts: web
+  become: true
+
+  tasks:
+    - name: Run website tasks
+      ansible.builtin.import_role:
+        name: web
+        tasks_from: website

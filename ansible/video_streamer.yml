@@ -1,0 +1,10 @@
+---
+# Person 3 — Video Streamer
+# Usage:
+#   ansible-playbook -i ansible/inventory.ini ansible/video_streamer.yml
+
+- name: Configure Video Streamer (FFmpeg RTMP push)
+  hosts: streamer
+  become: true
+  roles:
+    - streamer
