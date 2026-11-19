@@ -1,0 +1,63 @@
+name: Infrastructure Validation
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  pull_request:
+
+jobs:
+  terraform:
+    name: terraform/OpenTofu Validation
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: latest
+
+      - name: Check formatting
+        run: tofu fmt -check -recursive
+
+      - name: Initialize
+        run: tofu init -backend=false
+
+      - name: Validate
+        run: tofu validate
+
+  ansible:
+    name: Ansible Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Syntax check deploy playbook
+        run: |
+          export ANSIBLE_CONFIG=ansible/ansible.cfg
+          ansible-playbook \
+            --syntax-check \
+            ansible/playbooks/deploy-all.yml
+
+      - name: Syntax check validation playbook
+        run: |
+          export ANSIBLE_CONFIG=ansible/ansible.cfg
+          ansible-playbook \
+            --syntax-check \
+            ansible/playbooks/validate-streaming.yml
