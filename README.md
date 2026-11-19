@@ -307,6 +307,14 @@ This project provided practical experience with:
 - Service orchestration with systemd
 - CI validation workflows
 
+## Key DevOps Practices
+
+- Infrastructure as Code with OpenTofu
+- Configuration Management with Ansible
+- GitHub Actions based validation
+- Automated inventory generation
+- Private/Public subnet segmentation
+
 
 ## Future Improvements
 
